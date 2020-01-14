@@ -1,26 +1,29 @@
 const express = require('express');
-const fs = require('fs');
+const mongoose = require('mongoose');
+const cors = require('cors');
 
 const app = express();
 
-app.use(express.static('public'));
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
 
-app.get('/log', (req, res) => {
-  try {
-    var obj = JSON.parse(fs.readFileSync('public/locations.json', 'utf8'));
-
-    const location = JSON.parse(req.query.locations)
-
-    obj.locations.push(location);
-
-    fs.writeFile('public/locations.json', JSON.stringify(obj), 'utf8', () => { console.log('deu certo?') });
-
-    return res.json(location)
-  } catch (e) {
-    console.log('error grave ');
-    console.log(e.message);
-    return res.status(500).json(e.message)
-  }
+mongoose.connect('mongodb+srv://siriusme:s1r1usm3@cluster0-rzzfo.mongodb.net/siriusme?retryWrites=true&w=majority', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
 });
 
-app.listen(process.env.PORT || 4444);
+app.use(cors());
+
+app.use((req, res, next) => {
+    req.io = io;
+
+    next();
+});
+
+app.use(express.static('public'));
+
+app.use(express.json());
+
+app.use(require('./src/routes'));
+
+server.listen(process.env.PORT || '4444');
